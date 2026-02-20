@@ -58,6 +58,7 @@ function PlanStageColumn({ stage }) {
 }
 
 function App() {
+  const presentationPassword = (import.meta.env.VITE_PASSWORD_PRESENTATION ?? '').toString()
   const agendaItems = useMemo(
     () => [
       { name: 'Presentacion y acuerdos', mins: 10, tone: 'agenda-c1' },
@@ -401,12 +402,28 @@ function App() {
 
   const [current, setCurrent] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [authError, setAuthError] = useState(false)
+  const [isUnlocked, setIsUnlocked] = useState(presentationPassword.trim() === '')
 
   const nextSlide = () => setCurrent((prev) => Math.min(prev + 1, slides.length - 1))
   const prevSlide = () => setCurrent((prev) => Math.max(prev - 1, 0))
 
+  const handleUnlock = (event) => {
+    event.preventDefault()
+    if (passwordInput === presentationPassword) {
+      setIsUnlocked(true)
+      setAuthError(false)
+      return
+    }
+    setAuthError(true)
+  }
+
   useEffect(() => {
     const onKeyDown = (event) => {
+      if (!isUnlocked) {
+        return
+      }
       if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
         event.preventDefault()
         nextSlide()
@@ -437,11 +454,47 @@ function App() {
       window.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('fullscreenchange', onFullscreenChange)
     }
-  }, [slides.length])
+  }, [isUnlocked, slides.length])
+
+  useEffect(() => {
+    if (!authError) {
+      return
+    }
+    const timeout = setTimeout(() => setAuthError(false), 500)
+    return () => clearTimeout(timeout)
+  }, [authError])
 
   const activeSlide = slides[current]
   const isCoverSlide = activeSlide.id === 'portada'
   const isProjectorSlide = ['agenda', 'productos', 'cierre'].includes(activeSlide.id)
+
+  if (!isUnlocked) {
+    return (
+      <main className="auth-screen">
+        <div className="auth-orb auth-orb-1" />
+        <div className="auth-orb auth-orb-2" />
+        <form className={`auth-card${authError ? ' auth-shake' : ''}`} onSubmit={handleUnlock}>
+          <small>Acceso Protegido</small>
+          <h1>Presentacion INAPA</h1>
+          <p>Ingrese la clave para abrir la presentacion.</p>
+          <input
+            type="password"
+            placeholder="Password"
+            value={passwordInput}
+            onChange={(event) => {
+              setPasswordInput(event.target.value)
+              if (authError) {
+                setAuthError(false)
+              }
+            }}
+            autoFocus
+          />
+          <button type="submit">Ingresar</button>
+          {authError ? <span className="auth-error">Password incorrecto</span> : null}
+        </form>
+      </main>
+    )
+  }
 
   return (
     <main className={`deck${isCoverSlide ? ' deck-cover' : ''}${isProjectorSlide ? ' deck-projector' : ''}`}>
