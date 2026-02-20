@@ -475,7 +475,7 @@ function App() {
         <div className="auth-orb auth-orb-2" />
         <form className={`auth-card${authError ? ' auth-shake' : ''}`} onSubmit={handleUnlock}>
           <small>Acceso Protegido</small>
-          <h1>Presentacion INAPA</h1>
+          <h1>Propuesta de agenda - Reunion 1</h1>
           <p>Ingrese la clave para abrir la presentacion.</p>
           <input
             type="password"
